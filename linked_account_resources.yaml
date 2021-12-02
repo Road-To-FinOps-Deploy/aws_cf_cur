@@ -1,0 +1,63 @@
+AWSTemplateFormatVersion: '2010-09-09'
+Description: CloudFormation template that builds CUR 
+Parameters:
+  DestinationBucket:
+    Type: String
+    Description: Name of the S3 Bucket to be created to hold data information. This name will be combined with account id
+    AllowedPattern: (?=^.{3,63}$)(?!^(\d+\.)+\d+$)(^(([a-z0-9]|[a-z0-9][a-z0-9\-]*[a-z0-9])\.)*([a-z0-9]|[a-z0-9][a-z0-9\-]*[a-z0-9])$)
+  Compression:
+    Type: String
+    Default: "Parquet"
+  Format:
+    Type: String
+    Default: "Parquet"
+  ReportName:
+    Type: String
+    Default: "AWS-Cost-and-Usage-Report"
+  TimeUnit:
+    Type: String
+    Default: "HOURLY" 
+    AllowedValues:
+      - "HOURLY" 
+      - "DAILY"
+      - "MONTHLY"
+Resources:
+  S3Bucket:
+    Type: AWS::S3::Bucket
+    Properties:
+      BucketName:
+        !Sub "${DestinationBucket}${AWS::AccountId}"
+  CURBucketPolicy:
+    Type: AWS::S3::BucketPolicy
+    Properties:
+      Bucket: !Ref S3Bucket
+      PolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Action:
+              - 's3:GetBucketAcl'
+              - 's3:GetBucketPolicy'
+            Effect: Allow
+            Resource: !GetAtt S3Bucket.Arn 
+            Principal: {"Service": "billingreports.amazonaws.com"}
+          - Action:
+              - 's3:PutObject'
+            Effect: Allow
+            Resource: !Sub "${S3Bucket.Arn}/*"
+            Principal: {"Service": "billingreports.amazonaws.com"}
+  ReportDefinition:
+    DependsOn:
+      -  S3Bucket
+    Type: AWS::CUR::ReportDefinition
+    Properties: 
+      Compression: !Ref Compression
+      Format: !Ref Format
+      RefreshClosedReports: "True"
+      ReportName: !Ref ReportName
+      ReportVersioning: "CREATE_NEW_REPORT"
+      S3Bucket: !Ref S3Bucket
+      S3Prefix: "cur-report"
+      S3Region: "us-east-1"
+      TimeUnit: !Ref TimeUnit
+      AdditionalSchemaElements: 
+        - RESOURCES
