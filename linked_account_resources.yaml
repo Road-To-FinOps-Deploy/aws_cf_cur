@@ -24,6 +24,8 @@ Parameters:
 Resources:
   S3Bucket:
     Type: AWS::S3::Bucket
+    DependsOn:
+      - EventPermission
     Properties:
       BucketName:
         !Sub "${DestinationBucket}${AWS::AccountId}"
@@ -107,7 +109,7 @@ Resources:
       Environment:
         Variables:
           BUCKET_NAME:
-            Ref: S3Bucket
+            !Sub "${DestinationBucket}${AWS::AccountId}"
           REGION:
             AWS::Region
           REPORTNAME:
