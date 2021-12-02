@@ -4,20 +4,21 @@ Cloudformation template for cur deployment. For payer or member
 MUST BE DEPLOYED IN **us-east-1**
 
 
-Parameters:
-DestinationBucket:
+**Parameters:**
+
+* DestinationBucket:
     Type: String
     Description: Name of the S3 Bucket to be created to hold data information. This name will be combined with account id
-  Compression:
+* Compression:
     Type: String
     Default: "Parquet"
-  Format:
+* Format:
     Type: String
     Default: "Parquet"
-  ReportName:
+* ReportName:
     Type: String
     Default: "AWS-Cost-and-Usage-Report"
-  TimeUnit:
+* TimeUnit:
     Type: String
     Default: "HOURLY" 
     AllowedValues:
