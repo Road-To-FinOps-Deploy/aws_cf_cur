@@ -3,6 +3,7 @@ Cloudformation template for cur deployment. For payer or member
 
 MUST BE DEPLOYED IN **us-east-1**
 
+
 Parameters:
 DestinationBucket:
     Type: String
@@ -23,3 +24,8 @@ DestinationBucket:
       - "HOURLY" 
       - "DAILY"
       - "MONTHLY"
+
+For more info on how to utilise your CUR see [here](https://wellarchitectedlabs.com/cost/100_labs/100_1_aws_account_setup/)
+
+Next:
+Add events to create athena
