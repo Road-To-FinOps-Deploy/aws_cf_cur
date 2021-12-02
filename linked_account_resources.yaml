@@ -27,6 +27,15 @@ Resources:
     Properties:
       BucketName:
         !Sub "${DestinationBucket}${AWS::AccountId}"
+      NotificationConfiguration:
+        LambdaConfigurations:
+          - Event: s3:ObjectCreated:*
+            Function: !Sub "arn:aws:lambda:${AWS::Region}:${AWS::AccountId}:function:cloudformation_deploy_cur"
+            Filter:
+              S3Key:
+                Rules:
+                - Name: suffix
+                  Value: .yaml
   CURBucketPolicy:
     Type: AWS::S3::BucketPolicy
     Properties:
@@ -61,3 +70,86 @@ Resources:
       TimeUnit: !Ref TimeUnit
       AdditionalSchemaElements: 
         - RESOURCES
+  LambdaFunction:
+    Type: AWS::Lambda::Function
+    Properties:
+      FunctionName: cloudformation_deploy_cur
+      Description: LambdaFunction to retreive list of organization
+      Runtime: python3.8
+      Code:
+        ZipFile: |
+          #!/usr/bin/env python3
+          import boto3
+          import botocore
+          import os
+
+          def lambda_handler(event, context):
+              client = boto3.client('cloudformation')
+
+              S3BucketName    = os.environ['BUCKET_NAME']
+              Region = os.environ['REGION']
+              ReportName = os.environ['REPORTNAME']
+
+              response = client.create_stack(
+              StackName='Crawler',
+              TemplateURL=f"https://s3-{Region}.amazonaws.com/{S3BucketName}/cur-report/{ReportName}/crawler-cfn.yml",
+              Capabilities=[
+                  'CAPABILITY_IAM'
+              ]
+              )
+      Handler: 'index.lambda_handler'
+      MemorySize: 2688
+      Timeout: 600
+      Role:
+        Fn::GetAtt:
+          - LambdaIAMRole
+          - Arn
+      Environment:
+        Variables:
+          BUCKET_NAME:
+            Ref: S3Bucket
+          REGION:
+            AWS::Region
+          REPORTNAME:
+            !Ref ReportName
+  LambdaIAMRole:
+    Type: 'AWS::IAM::Role'
+    Properties:
+      AssumeRolePolicyDocument:
+        Version: 2012-10-17
+        Statement:
+          - Effect: Allow
+            Principal:
+              Service:
+                - lambda.amazonaws.com
+            Action:
+              - 'sts:AssumeRole'
+      Path: /
+      Policies:
+        - PolicyName: root
+          PolicyDocument:
+            Version: 2012-10-17
+            Statement:
+              - Effect: Allow
+                Action:
+                  - 's3:GetBucketNotification'
+                  - 's3:PutBucketNotification'
+                Resource: !Sub 'arn:aws:s3:::${DestinationBucket}'
+              - Effect: Allow
+                Action:
+                  - 'logs:CreateLogGroup'
+                  - 'logs:CreateLogStream'
+                  - 'logs:PutLogEvents'
+                Resource: 'arn:aws:logs:*:*:*'
+              - Effect: Allow
+                Action:
+                  - "glue:StartCrawler"
+                Resource: '*'
+  EventPermission:
+    Type: AWS::Lambda::Permission
+    Properties:
+      FunctionName: !GetAtt LambdaFunction.Arn
+      Action: lambda:InvokeFunction
+      Principal: s3.amazonaws.com
+      SourceAccount: !Ref 'AWS::AccountId'
+      SourceArn: !Sub "arn:aws:s3:::${DestinationBucket}${AWS::AccountId}"
