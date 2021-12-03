@@ -65,7 +65,7 @@ Resources:
       Format: !Ref Format
       RefreshClosedReports: "True"
       ReportName: !Ref ReportName
-      ReportVersioning: "CREATE_NEW_REPORT"
+      ReportVersioning: "OVERWRITE_REPORT"
       S3Bucket: !Ref S3Bucket
       S3Prefix: "cur-report"
       S3Region: "us-east-1"
